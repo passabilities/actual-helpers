@@ -1,6 +1,6 @@
 const api = require('@actual-app/api');
 const jsdom = require("jsdom");
-const { closeBudget, ensurePayee, getAccountBalance, getAccountNote, getLastTransactionDate, getTagValue, openBudget, setAccountNote, sleep } = require('./utils');
+const { closeBudget, ensurePayee, getAccountBalance, getAccountNote, getLastTransaction, getTagValue, openBudget, setAccountNote, sleep } = require('./utils');
 require("dotenv").config();
 
 async function getKBB(URL) {
@@ -72,10 +72,10 @@ async function getKBB(URL) {
         if (diff != 0) {
           const daily = parseInt(getTagValue(note, 'kbbDailyMileage'));
           if (mileage && daily) {
-            let lastDate = await getLastTransactionDate(account, undefined, true);
-            if (lastDate) {
-              const parts = lastDate.split('-');
-              lastDate = new Date(parts[0], parts[1] - 1, parts[2]);
+            let lastTx = await getLastTransaction(account, undefined, true);
+            if (lastTx) {
+              const parts = lastTx.date.split('-');
+              const lastDate = new Date(parts[0], parts[1] - 1, parts[2]);
               if (lastDate < new Date()) {
                 let today = new Date();
                 today = new Date(today.getFullYear(), today.getMonth(), today.getDate());
