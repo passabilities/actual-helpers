@@ -1,5 +1,5 @@
 const api = require('@actual-app/api');
-const { closeBudget, ensurePayee, getAccountBalance, getAccountNote, getLastTransactionDate, getTagValue, openBudget, showPercent } = require('./utils');
+const { closeBudget, ensurePayee, getAccountBalance, getAccountNote, getLastTransaction, getTagValue, openBudget, showPercent } = require('./utils');
 require("dotenv").config();
 
 function daysInYear(year) {
@@ -39,9 +39,9 @@ function daysInYear(year) {
         cutoff.setMonth(cutoff.getMonth() - 1);
         cutoff.setDate(cutoff.getDate() + 1);
 
-        const lastDate = await getLastTransactionDate(account, cutoff);
-        if (!lastDate) continue;
-        const daysPassed = Math.floor((interestTransactionDate - new Date(lastDate)) / 86400000);
+        const lastTx = await getLastTransaction(account, cutoff);
+        if (!lastTx) continue;
+        const daysPassed = Math.floor((interestTransactionDate - new Date(lastTx.date)) / 86400000);
 
         let period = 12;
         let numPeriods = 1
@@ -64,7 +64,7 @@ function daysInYear(year) {
 
         console.log(`== ${account.name} ==`);
         console.log(` -> Balance:  ${balance}`);
-        console.log(`      as of ${lastDate}`);
+        console.log(`      as of ${lastTx.date}`);
         console.log(` -> # days:   ${daysPassed}`);
         console.log(` -> Interest: ${compoundedInterest} (${interestRate})`)
 

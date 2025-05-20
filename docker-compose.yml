@@ -1,7 +1,15 @@
 services:
   actual-helpers:
     container_name: actual-helpers
-    image: ghcr.io/psybers/actual-helpers:latest
+    build: .
     env_file: .env
     volumes:
       - ./cache:/usr/src/app/cache
+    restart: unless-stopped
+    networks:
+      - actual-budget
+
+networks:
+  actual-budget:
+    name: actual-budget-network
+    external: true
