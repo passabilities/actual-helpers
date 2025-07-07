@@ -1,12 +1,12 @@
-const { closeBudget, openBudget, getTransactions, getAccountNote, getAccountBalance, getTagValue, ensurePayee } = require('./utils');
+const { closeBudget, openBudget, getTransactions, getAccountNote, getAccountBalance, getTagValue, ensurePayee, getLastTransaction } = require('./utils');
 const api = require('@actual-app/api');
 
 function getValueAtPath(obj, path) {
     const keys = path.split('.').filter(Boolean);
-    
+
     return keys.reduce((acc, key) => {
         const match = key.match(/^([^\[\]]+)(\[(\d+)\])?$/);
-        
+
         if (match) {
             const property = match[1];
             const index = match[3];
@@ -19,7 +19,7 @@ function getValueAtPath(obj, path) {
         } else {
             acc = acc[key];
         }
-        
+
         return acc;
     }, obj);
 }
@@ -36,13 +36,13 @@ async function getBitcoinPrice() {
   }
 }
 
-(async () => {
+module.exports = async () => {
   const bitcoinPrice = await getBitcoinPrice();
   if (!bitcoinPrice) {
     throw new Error("Unable to retrieve Bitcoin price. Check your BITCOIN_PRICE_URL and BITCOIN_PRICE_JSON_PATH environment variables");
   }
   await openBudget();
-  const payeeId = await ensurePayee(process.env.BITCOIN_PAYEE_NAME || 'Bitcoin Price Change');
+  const payeeId = await ensurePayee(process.env.BITCOIN_PAYEE_NAME || 'Price Change');
   const accounts = await api.getAccounts();
   for (const account of accounts) {
     if (account.closed) {
@@ -51,7 +51,7 @@ async function getBitcoinPrice() {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() + 1);
     const note = await getAccountNote(account, cutoffDate);
-    const btc_amount = parseFloat(getTagValue(note, 'BTC', 0.0));
+    const btc_amount = parseFloat(getTagValue(note, 'ETH', 0.0));
     if (!btc_amount) {
       continue;
     }
@@ -59,15 +59,27 @@ async function getBitcoinPrice() {
     const targetBalance = Math.round(bitcoinPrice * btc_amount * 100);
     const diff = targetBalance - currentBalance;
     if (diff != 0) {
-      await api.importTransactions(account.id, [{
-        date: new Date(),
-        payee: payeeId,
-        amount: diff,
-        cleared: true,
-        reconciled: true,
-        notes: "Updated Bitcoin Price",
-      }])
+      const lastTx = await getLastTransaction(account, undefined,true, { $like: 'Update balance to %' })
+      const shouldUpdateTx = lastTx && new RegExp(`^${lastTx.date}T`).test(new Date().toISOString())
+
+      const newNote = `Update balance to ${targetBalance / 100}`
+
+      if (shouldUpdateTx) {
+        await api.updateTransaction(lastTx.id, {
+          amount: +lastTx.amount + diff,
+          notes: newNote,
+        })
+      } else {
+        await api.importTransactions(account.id, [{
+          date: new Date(),
+          payee: payeeId,
+          amount: diff,
+          cleared: true,
+          reconciled: true,
+          notes: newNote,
+        }])
+      }
     }
   }
   await closeBudget();
-})();
+}
