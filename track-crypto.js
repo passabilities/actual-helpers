@@ -188,5 +188,3 @@ async function checkDebank(account, note, newNote) {
 
   return { matched: !!debankMatch, regex };
 }
-
-module.exports()
