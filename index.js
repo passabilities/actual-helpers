@@ -1,7 +1,6 @@
 const schedule = require('node-schedule')
 
 const trackCrypto = require('./track-crypto')
-const syncBitcoin = require('./sync-bitcoin')
 
 const cp = require('child_process')
 
@@ -12,7 +11,6 @@ const run = async () => {
   running = true
 
   await trackCrypto()
-  await syncBitcoin()
 
   running = false
 }

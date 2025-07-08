@@ -190,6 +190,39 @@ const Utils = {
     });
   },
 
+  updateAccountBalance: async function updateAccountBalance(account, newBalance) {
+    const currentBalance = await Utils.getAccountBalance(account);
+    const diff =  Math.round(newBalance * 100) - currentBalance;
+
+    if (diff) {
+      const lastTx = await Utils.getLastTransaction(account, undefined,true, { $like: 'Update balance to %' })
+      const shouldUpdateTx = lastTx && new RegExp(`^${lastTx.date}T`).test(new Date().toISOString())
+
+      const txNote = `Update balance to ${newBalance}`
+
+      const payeeId = await Utils.ensurePayee(process.env.INVESTMENT_PAYEE_NAME || 'Investment');
+      const categoryGroupId = await Utils.ensureCategoryGroup(process.env.INVESTMENT_CATEGORY_GROUP_NAME || 'Income');
+      const categoryId = await Utils.ensureCategory(process.env.INVESTMENT_CATEGORY_NAME || 'Investment', categoryGroupId, true);
+
+      if (shouldUpdateTx) {
+        await api.updateTransaction(lastTx.id, {
+          amount: +lastTx.amount + diff,
+          notes: txNote,
+        })
+      } else {
+        await api.importTransactions(account.id, [{
+          date: new Date(),
+          payee: payeeId,
+          amount: diff,
+          cleared: true,
+          reconciled: true,
+          category: categoryId,
+          notes: txNote,
+        }]);
+      }
+    }
+  },
+
   getSimpleFinID: async function (account) {
     const data = await api.runQuery(
       api.q('accounts')
@@ -269,6 +302,10 @@ const Utils = {
   showPercent: function (pct) {
     return Number(pct).toLocaleString(undefined,
         { style: 'percent', maximumFractionDigits: 4 })
+  },
+
+  escapeRegExp: function (string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
   },
 };
 
