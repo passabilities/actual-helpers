@@ -24,6 +24,9 @@ module.exports = async () => {
 
     const validatorsMatch = note.match(/validator:(\d+):(1|0?\.\d+)/g);
     if (validatorsMatch) {
+      const validatorStartComment = `[comment]: <> (== START VALIDATORS ==)`;
+      const validatorEndComment = `[comment]: <> (== END VALIDATORS ==)`;
+
       const validators = [];
       const percents = [];
       for (const validatorStr of validatorsMatch) {
@@ -31,7 +34,7 @@ module.exports = async () => {
         validators.push(index);
         percents.push(percent);
       }
-      const balanceResponse = await fetch(`http://consensus:5052/eth/v1/beacon/states/finalized/validator_balances?id=${validators.join(',')}`)
+      const balanceResponse = await fetch(`${process.env.CONSENSUS_HOST}/eth/v1/beacon/states/finalized/validator_balances?id=${validators.join(',')}`)
       const json = await balanceResponse.json();
 
       const balances = [];
@@ -40,8 +43,9 @@ module.exports = async () => {
         balances.push(balance);
       }
 
-      let newNote = [];
-      newNote.push(`[comment]: <> (Only edit these comments!)`);
+      const newNote = [];
+      newNote.push(validatorStartComment);
+      newNote.push(`[comment]: <> (Only edit the comments below!)`);
       for (const i in validators) {
         const index = validators[i];
         const percent = percents[i];
@@ -60,13 +64,22 @@ module.exports = async () => {
       }
       newNote.push('');
       newNote.push(`ETH:${formatGwei(total)}`);
+      newNote.push('');
+      newNote.push(validatorEndComment);
+
+      const existingNotesMatch = note.match(new RegExp(`(.+)${validatorStartComment}(.+)`));
+      if (existingNotesMatch) {
+        newNote.splice(0, 0, existingNotesMatch[1]);
+        newNote.push(existingNotesMatch[2]);
+      }
+
       await setAccountNote(account, newNote.join('\n'));
     }
 
     const ethMatch = note.match(/eth:(0x[a-fA-F0-9]{40})/);
     if (ethMatch) {
       const addr = ethMatch[1];
-      const balanceResponse = await fetch('http://execution:8545', {
+      const balanceResponse = await fetch(process.env.EXECUTION_HOST, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -130,3 +143,5 @@ module.exports = async () => {
     }
   }
 }
+
+module.exports()
