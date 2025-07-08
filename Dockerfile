@@ -9,7 +9,8 @@ RUN mkdir -p ./cache
 # Define environment variables
 ENV NODE_ENV=production
 
-ENV SIMPLEFIN_CREDENTIALS=
+# optional, for logging into SimpleFIN
+ENV SIMPLEFIN_CREDENTIALS=""
 
 ENV ACTUAL_SERVER_URL="http://actual_server:5006"
 ENV ACTUAL_SERVER_PASSWORD="LigkXLw_CwT-yPsz8xtQ"
@@ -50,8 +51,8 @@ ENV BITCOIN_PAYEE_NAME="Balance Adjustment"
 ENV RENTCAST_API_KEY="<Rentcast API key>"
 ENV RENTCAST_PAYEE_NAME="RentCast"
 
-# optional, for logging into SimpleFIN
-ENV SIMPLEFIN_CREDENTIALS=""
+ENV CONSENSUS_HOST="http://consensus:5052"
+ENV EXECUTION_HOST="http://execution:8545"
 
 VOLUME ./cache
 
