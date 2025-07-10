@@ -1,8 +1,7 @@
 const schedule = require('node-schedule')
 
 const trackCrypto = require('./track-crypto')
-
-const cp = require('child_process')
+const { openBudget, closeBudget } = require('./utils')
 
 let running = false
 
@@ -15,18 +14,32 @@ const run = async () => {
   running = false
 }
 
-run()
+openBudget().then(async () => {
+  await run()
 
-//cp.fork('track-crypto.js')
-//cp.fork('sync-bitcoin.js')
-//cp.fork('track-investments.js')
-//
-// run at 8am & 8pm
-//schedule.scheduleJob('0 8,20 * * *', () => {
-//  cp.fork('track-investments.js')
-//})
-
-// run every 15 minutes
-schedule.scheduleJob('*/15 * * * *', () => {
-  run()
+  // run every 15 minutes
+  schedule.scheduleJob('*/1 * * * *', () => {
+    run()
+  })
 })
+
+async function exitHandler(options, exitCode) {
+  await closeBudget();
+
+  if (options.cleanup) console.log('clean');
+  if (exitCode || exitCode === 0) console.log(exitCode);
+  if (options.exit) process.exit();
+}
+
+// do something when app is closing
+process.on('exit', exitHandler.bind(null,{cleanup:true}));
+
+// catches ctrl+c event
+process.on('SIGINT', exitHandler.bind(null, {exit:true}));
+
+// catches "kill pid" (for example: nodemon restart)
+process.on('SIGUSR1', exitHandler.bind(null, {exit:true}));
+process.on('SIGUSR2', exitHandler.bind(null, {exit:true}));
+
+// catches uncaught exceptions
+process.on('uncaughtException', exitHandler.bind(null, {exit:true}));

@@ -32,7 +32,6 @@ const Utils = {
     } else {  
       await api.downloadBudget(sync_id);
     }
-    await api.sync();
   },
 
   closeBudget: async function () {

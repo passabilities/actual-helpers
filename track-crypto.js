@@ -6,15 +6,11 @@ const { fetchCryptoValue } = require('./utils/fetchCryptoPrice')
 require("dotenv").config();
 
 module.exports = async () => {
-  await openBudget()
-
   await wrapFunctions([
     checkValidators,
     checkEth,
     checkDebank,
   ])
-
-  await closeBudget();
 }
 
 /**
