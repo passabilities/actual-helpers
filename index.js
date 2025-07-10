@@ -18,7 +18,7 @@ openBudget().then(async () => {
   await run()
 
   // run every 15 minutes
-  schedule.scheduleJob('*/1 * * * *', () => {
+  schedule.scheduleJob('*/15 * * * *', () => {
     run()
   })
 })
