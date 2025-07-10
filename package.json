@@ -6,7 +6,7 @@
     "dotenv": "^16.4.5",
     "jsdom": "^24.1.0",
     "node-schedule": "^2.1.1",
-    "playwright": "^1.53.2",
+    "playwright": "^1.54.0",
     "readline-sync": "^1.4.10",
     "selenium-webdriver": "^4.27.0",
     "viem": "^2.31.7"
