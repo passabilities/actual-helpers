@@ -2,6 +2,10 @@ services:
   actual-helpers:
     container_name: actual-helpers
     build: .
+    # runs Tini at PID 1 to reap zombies
+    init: true
+    # recommended for Chromium stability
+    ipc: host
     env_file: .env
     volumes:
       - ./cache:/usr/src/app/cache
