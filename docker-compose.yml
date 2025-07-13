@@ -13,6 +13,11 @@ services:
     networks:
       - actual-budget
       - eth-docker_default
+    deploy:
+      resources:
+        limits:
+          cpus: '0.2'
+          memory: 2G
 
 networks:
   actual-budget:
