@@ -1,4 +1,8 @@
 {
+  "scripts": {
+    "build": "tsc",
+    "build:prod": "tsc -p tsconfig.prod.json"
+  },
   "dependencies": {
     "@actual-app/api": "latest",
     "better-sqlite3": "^11.7.2",
