@@ -10,5 +10,10 @@
     "readline-sync": "^1.4.10",
     "selenium-webdriver": "^4.27.0",
     "viem": "^2.31.7"
+  },
+  "devDependencies": {
+    "@types/node-schedule": "^2.1.8",
+    "@types/readline-sync": "^1.4.8",
+    "typescript": "^5.8.3"
   }
 }

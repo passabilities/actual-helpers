@@ -1,7 +1,10 @@
-const schedule = require('node-schedule')
+import { AccountEntity } from '@actual-app/api/@types/loot-core/src/types/models'
+import schedule from 'node-schedule'
+import * as api from '@actual-app/api'
 
-const trackCrypto = require('./track-crypto')
-const { openBudget, closeBudget } = require('./utils')
+import syncBalance from './sync-balance'
+import trackCrypto from './track-crypto'
+import { closeBudget, openBudget } from './utils'
 
 let running = false
 
@@ -9,7 +12,9 @@ const run = async () => {
   if (running) return
   running = true
 
-  await trackCrypto()
+  const accounts: AccountEntity[] = await api.getAccounts();
+  await trackCrypto(accounts)
+  await syncBalance(accounts)
 
   running = false
 }
@@ -23,7 +28,7 @@ openBudget().then(async () => {
   })
 })
 
-async function exitHandler(options, exitCode) {
+async function exitHandler(options: { cleanup?: boolean; exit?: boolean }, exitCode?: number) {
   await closeBudget();
 
   if (options.cleanup) console.log('clean');

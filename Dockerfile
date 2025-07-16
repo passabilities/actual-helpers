@@ -18,4 +18,4 @@ COPY . .
 RUN npm install && npm update
 
 # Run the app when the container launches
-CMD ["node", "index.js"]
+CMD ["npx", "ts-node", "index.ts"]
