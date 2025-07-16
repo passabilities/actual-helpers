@@ -1,7 +1,7 @@
 import * as api from '@actual-app/api'
 import { AccountEntity, TransactionEntity } from '@actual-app/api/@types/loot-core/src/types/models'
-import fs from 'fs'
-import readline from 'readline-sync'
+import * as fs from 'fs'
+import * as readline from 'readline-sync'
 
 require("dotenv").config();
 

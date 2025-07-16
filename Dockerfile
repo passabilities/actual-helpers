@@ -15,7 +15,7 @@ VOLUME ./cache
 COPY . .
 
 # Install any needed packages specified in package.json
-RUN npm install && npm update
+RUN npm install && npm update && tsc -p tsconfig.prod.json
 
 # Run the app when the container launches
-CMD ["npx", "ts-node", "index.ts"]
+CMD ["node", "./dist/index.js"]
