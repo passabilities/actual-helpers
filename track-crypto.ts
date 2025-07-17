@@ -170,7 +170,7 @@ async function checkDebank(account: AccountEntity, note: string, newNote: string
     const page = await browser.newPage();
     await page.goto(`https://debank.com/profile/${addr}`);
 
-    const assetTotalRegex = /\$([0-9,]+)/
+    const assetTotalRegex = /\$(?!0+)([0-9,]+)/
     const assetTotalLocator = page.locator('.HeaderInfo_totalAssetInner__HyrdC', { hasText: assetTotalRegex })
     const refreshLocator = page.locator('.UpdateButton_refresh__vkj2W', { hasText: 'Data updated' })
 
