@@ -170,12 +170,11 @@ async function checkDebank(account: AccountEntity, note: string, newNote: string
     const elementText = await assetTotalLocator.innerText();
     await browser.close();
 
-    const balanceMatch = elementText.match(assetTotalRegex);
-    if (!balanceMatch) {
-      throw new Error(`Could not find balance on page for ${addr}`);
-    }
+    const [ _, balanceStr ] = elementText.match(assetTotalRegex)!;
+    const debankBalance = parseFloat(balanceStr.replace(/,/g, ''));
+    const updatedText = await refreshLocator.innerText().then(t => t.replace(/\n/g, ' '));
+    console.log(`Debank balance for ${addr}: $${balanceStr} - ${updatedText}`);
 
-    const debankBalance = parseFloat(balanceMatch[1].replace(/,/g, ''));
     await updateAccountBalance({
       account,
       newBalance: debankBalance,
