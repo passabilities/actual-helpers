@@ -169,11 +169,17 @@ async function checkDebank(account: AccountEntity, note: string, newNote: string
     const browser = await chromium.launch();
     const page = await browser.newPage();
     await page.goto(`https://debank.com/profile/${addr}`);
-    await page.locator('.UpdateButton_refresh__vkj2W').and(page.getByText('Data updated')).waitFor();
-    const elementText = await page.locator('.HeaderInfo_totalAssetInner__HyrdC').innerText();
+
+    const assetTotalRegex = /\$([0-9,]+)/
+    const assetTotalLocator = page.locator('.HeaderInfo_totalAssetInner__HyrdC', { hasText: assetTotalRegex })
+    const refreshLocator = page.locator('.UpdateButton_refresh__vkj2W', { hasText: 'Data updated' })
+
+    await refreshLocator.waitFor({ state: 'visible' })
+    await assetTotalLocator.waitFor()
+    const elementText = await assetTotalLocator.innerText();
     await browser.close();
 
-    const balanceMatch = elementText.match(/^\$([0-9,]+)\n/);
+    const balanceMatch = elementText.match(assetTotalRegex);
     if (!balanceMatch) {
       throw new Error(`Could not find balance on page for ${addr}`);
     }
