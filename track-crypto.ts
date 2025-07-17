@@ -159,10 +159,11 @@ async function checkDebank(account: AccountEntity, note: string, newNote: string
     const browser = await chromium.launch();
     const page = await browser.newPage();
     await page.goto(`https://debank.com/profile/${addr}`);
+    await page.locator('.UpdateButton_refreshIcon__Zr6Rb').click();
 
     const assetTotalRegex = /\$(?!0+)([0-9,]+)/
     const assetTotalLocator = page.locator('.HeaderInfo_totalAssetInner__HyrdC', { hasText: assetTotalRegex })
-    const refreshLocator = page.locator('.UpdateButton_refresh__vkj2W', { hasText: 'Data updated' })
+    const refreshLocator = page.locator('.UpdateButton_refresh__vkj2W', { hasText: /Data updated.+\d+ secs.+ago/ })
 
     await refreshLocator.waitFor({ state: 'visible' })
     await assetTotalLocator.waitFor()
