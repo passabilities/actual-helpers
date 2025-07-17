@@ -110,11 +110,6 @@ async function checkValidators(account: AccountEntity, note: string, newNote: st
       account,
       newBalance: +value,
       payee: 'Balance Adjustment',
-      category: {
-        name: 'Investment',
-        group: 'Income',
-        income: false
-      },
     })
   }
 
@@ -148,11 +143,6 @@ async function checkEth(account: AccountEntity, note: string, newNote: string[])
       account,
       newBalance: +value,
       payee: 'Balance Adjustment',
-      category: {
-        name: 'Investment',
-        group: 'Income',
-        income: false
-      },
     })
   }
 
@@ -189,11 +179,6 @@ async function checkDebank(account: AccountEntity, note: string, newNote: string
       account,
       newBalance: debankBalance,
       payee: 'Balance Adjustment',
-      category: {
-        name: 'Investment',
-        group: 'Income',
-        income: false
-      },
     })
   }
 

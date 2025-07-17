@@ -71,7 +71,7 @@ export async function getTransactions(account: AccountEntity): Promise<Transacti
   return data.data;
 }
 
-export async function getLastTransaction(account: AccountEntity, cutoffDate?: Date, inbound = false, notes?: string | Record<string, any>): Promise<TransactionEntity | undefined> {
+export async function getLastTransaction(account: AccountEntity, cutoffDate?: Date, notes?: string | Record<string, any>): Promise<TransactionEntity | undefined> {
   if (!cutoffDate) {
       cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() + 1);
@@ -81,9 +81,6 @@ export async function getLastTransaction(account: AccountEntity, cutoffDate?: Da
     'date': { $lt: cutoffDate },
     'notes': notes,
   };
-  if (!inbound) {
-    filters['amount'] = { $gt: 0 };
-  }
   const data = await api.aqlQuery(
     api.q('transactions')
       .filter(filters)
@@ -188,7 +185,7 @@ interface UpdateBalanceArgs {
   account: AccountEntity
   newBalance: number
   payee: string
-  category: {
+  category?: {
     name: string
     group: string
     income: boolean
@@ -196,14 +193,17 @@ interface UpdateBalanceArgs {
 }
 export async function updateAccountBalance(args: UpdateBalanceArgs): Promise<void> {
   const payeeId = await ensurePayee(args.payee);
-  const categoryGroupId = await ensureCategoryGroup(args.category.group);
-  const categoryId = await ensureCategory(args.category.name, categoryGroupId, args.category.income);
+  let categoryId: string | undefined;
+  if (args.category) {
+    const categoryGroupId = await ensureCategoryGroup(args.category.group);
+    categoryId = await ensureCategory(args.category.name, categoryGroupId, args.category.income);
+  }
 
   const currentBalance = await getAccountBalance(args.account);
   const diff =  Math.round(args.newBalance * 100) - currentBalance;
 
   if (diff) {
-    const lastTx = await getLastTransaction(args.account, undefined,args.category.income, { $like: '%#helper-script%' })
+    const lastTx = await getLastTransaction(args.account, undefined, { $like: '%#helper-script%' })
     const shouldUpdateTx = lastTx && new RegExp(`^${lastTx.date}T`).test(new Date().toISOString())
 
     const txNote = `Update balance to ${args.newBalance} #helper-script`

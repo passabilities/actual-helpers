@@ -5,7 +5,6 @@ import {
   getAccountNote,
   getSimpleFinAccounts,
   getSimpleFinID,
-  getTagValue,
   updateAccountBalance,
 } from './utils'
 
@@ -15,26 +14,6 @@ export default async function syncBalance(accounts: AccountEntity[]) {
 
     const note = await getAccountNote(account);
     if (!note) continue;
-
-    let category: Parameters<typeof updateAccountBalance>[0]['category'] | undefined;
-    switch (getTagValue(note, 'sync')) {
-      case 'investment':
-        category = {
-          name: 'Investment',
-          group: 'Income',
-          income: true,
-        }
-        break;
-      case 'loan':
-        category = {
-          name: 'Interest',
-          group: 'Financial',
-          income: true,
-        }
-        break;
-      default:
-        continue;
-    }
 
     const simpleFinID = await getSimpleFinID(account);
     if (!simpleFinID) continue;
@@ -51,7 +30,6 @@ export default async function syncBalance(accounts: AccountEntity[]) {
       account,
       newBalance: +simpleFinAccount.balance,
       payee: 'Balance Adjustment',
-      category,
     })
   }
 }
