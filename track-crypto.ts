@@ -156,23 +156,31 @@ async function checkDebank(account: AccountEntity, note: string, newNote: string
     const addr = debankMatch[1];
     newNote.push(`debank:${addr}`);
 
-    const browser = await chromium.launch();
+    const browser = await chromium.launch({
+      timeout: 0
+    });
     const page = await browser.newPage();
     await page.goto(`https://debank.com/profile/${addr}`);
-    await page.locator('.UpdateButton_refreshIcon__Zr6Rb').click();
+
+    const refreshButton = page.locator('.UpdateButton_refreshIcon__Zr6Rb')
+    await refreshButton.click();
+
+    const updatingLocator = page.locator('.UpdateButton_refresh__vkj2W', { hasText: 'Updating data' })
+    await updatingLocator.waitFor()
+
+    const updatedLocator = page.locator('.UpdateButton_refresh__vkj2W', { hasText: /Data updated.+\d+ secs.+ago/ })
+    await updatedLocator.waitFor()
 
     const assetTotalRegex = /\$(?!0+)([0-9,]+)/
     const assetTotalLocator = page.locator('.HeaderInfo_totalAssetInner__HyrdC', { hasText: assetTotalRegex })
-    const refreshLocator = page.locator('.UpdateButton_refresh__vkj2W', { hasText: /Data updated.+\d+ secs.+ago/ })
-
-    await refreshLocator.waitFor({ state: 'visible' })
     await assetTotalLocator.waitFor()
     const elementText = await assetTotalLocator.innerText();
+
     await browser.close();
 
     const [ _, balanceStr ] = elementText.match(assetTotalRegex)!;
     const debankBalance = parseFloat(balanceStr.replace(/,/g, ''));
-    const updatedText = await refreshLocator.innerText().then(t => t.replace(/\n/g, ' '));
+    const updatedText = await updatedLocator.innerText().then(t => t.replace(/\n/g, ' '));
     console.log(`Debank balance for ${addr}: $${balanceStr} - ${updatedText}`);
 
     await updateAccountBalance({
