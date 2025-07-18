@@ -5,6 +5,7 @@ import {
   getAccountNote,
   getSimpleFinAccounts,
   getSimpleFinID,
+  getTagValue,
   updateAccountBalance,
 } from './utils'
 
@@ -14,6 +15,9 @@ export default async function syncBalance(accounts: AccountEntity[]) {
 
     const note = await getAccountNote(account);
     if (!note) continue;
+
+    const syncType = getTagValue(note, 'sync');
+    if (!syncType) continue;
 
     const simpleFinID = await getSimpleFinID(account);
     if (!simpleFinID) continue;
@@ -25,6 +29,8 @@ export default async function syncBalance(accounts: AccountEntity[]) {
     if (dateToNumber(balanceDate) < dateToNumber(new Date())) {
       continue;
     }
+
+    console.log(`Syncing balance for ${syncType} account:`, account.name);
 
     await updateAccountBalance({
       account,
