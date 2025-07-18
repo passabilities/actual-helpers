@@ -209,7 +209,7 @@ export async function updateAccountBalance(args: UpdateBalanceArgs): Promise<voi
 
     const txNote = `${args.note ?? `Update balance to ${args.newBalance}`} #helper-script`;
 
-    console.log(`Updating account balance for "${args.account.name}" from ${currentBalance} to ${args.newBalance}`);
+    console.log(`Updating account balance for "${args.account.name}" from ${currentBalance / 100} to ${args.newBalance}`);
 
     if (shouldUpdateTx) {
       await api.updateTransaction(lastTx.id, {

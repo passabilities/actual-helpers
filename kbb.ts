@@ -46,42 +46,65 @@ export default async function trackKBB(accounts: AccountEntity[]) {
     const note = await getAccountNote(account);
     if (!note) continue;
 
-    const url = new URL('https://upa.syndication.kbb.com/usedcar/privateparty/sell');
-
-    const vehicleid = getTagValue(note, 'kbbVehicleid');
-    if (!vehicleid) continue;
-    url.searchParams.set('vehicleid', vehicleid);
-
-    if (!process.env.KBB_API_KEY) throw new Error('Missing KBB API key');
-    url.searchParams.set('apikey', process.env.KBB_API_KEY);
-
-    const zip = getTagValue(note, 'kbbZipcode', '46237');
-    if (zip) url.searchParams.set('zipcode', zip);
-
-    const condition = getTagValue(note, 'kbbCondition', 'good');
-    if (condition) url.searchParams.set('condition', condition);
+    let url: URL
 
     let mileage = getTagValue(note, 'kbbMileage');
-    const dailyMileage = getTagValue(note, 'kbbDailyMileage')
-    if (mileage) {
-      if (dailyMileage) {
-        const daily = parseInt(dailyMileage);
-        const lastTx = await getLastTransaction(account, undefined)
-        if (lastTx) {
-          const days = dayjs().diff(dayjs(lastTx.date), 'days');
-          if (days > 0) {
-            mileage = String(parseInt(mileage) + (days * daily));
 
-            const newNote = note.replace(/kbbMileage:\d+/, `kbbMileage:${mileage}`);
-            await setAccountNote(account, newNote);
+    const kbbType = getTagValue(note, 'kbbType');
+    if (!kbbType) continue;
+    switch (kbbType) {
+      case 'car': {
+        url = new URL('https://upa.syndication.kbb.com/usedcar/privateparty/sell');
+        const vehicleid = getTagValue(note, 'kbbVehicleid');
+        if (!vehicleid) continue;
+        url.searchParams.set('vehicleid', vehicleid);
+
+        if (!process.env.KBB_API_KEY) throw new Error('Missing KBB API key');
+        url.searchParams.set('apikey', process.env.KBB_API_KEY);
+
+        const zip = getTagValue(note, 'kbbZipcode', '46237');
+        if (zip) url.searchParams.set('zipcode', zip);
+
+        const condition = getTagValue(note, 'kbbCondition', 'good');
+        if (condition) url.searchParams.set('condition', condition);
+
+        const dailyMileage = getTagValue(note, 'kbbDailyMileage')
+        if (mileage) {
+          if (dailyMileage) {
+            const daily = parseInt(dailyMileage);
+            const lastTx = await getLastTransaction(account, undefined)
+            if (lastTx) {
+              const days = dayjs().diff(dayjs(lastTx.date), 'days');
+              if (days > 0) {
+                mileage = String(parseInt(mileage) + (days * daily));
+
+                const newNote = note.replace(/kbbMileage:\d+/, `kbbMileage:${mileage}`);
+                await setAccountNote(account, newNote);
+              }
+            }
           }
+          url.searchParams.set('mileage', mileage);
         }
-      }
-      url.searchParams.set('mileage', mileage);
-    }
 
-    const options = getTagValue(note, 'kbbOptions');
-    if (options) url.searchParams.set('optionids', options);
+        const options = getTagValue(note, 'kbbOptions');
+        if (options) url.searchParams.set('optionids', options);
+
+        break;
+      }
+      case 'motorcycle': {
+        const make = getTagValue(note, 'kbbMake');
+        const model = getTagValue(note, 'kbbModel');
+        const year = getTagValue(note, 'kbbYear');
+        if (!make || !model || !year) throw new Error('Missing make, model, or year');
+
+        url = new URL(`https://www.kbb.com/motorcycles/${make}/${model}/${year}`);
+
+        break;
+      }
+      default: {
+        throw new Error('Unknown KBB type: ' + kbbType);
+      }
+    }
 
     const pricetype = getTagValue(note, 'kbbPriceType');
     if (pricetype) url.searchParams.set('pricetype', pricetype);
@@ -93,7 +116,7 @@ export default async function trackKBB(accounts: AccountEntity[]) {
       account,
       newBalance: kbb,
       payee: 'KBB',
-      note: `Update KBB to ${kbb} (${mileage} miles)`,
+      note: `Update KBB to ${kbb}${mileage ? ` (${mileage} miles)` : ''}`,
     })
 
     await sleep(1324);
