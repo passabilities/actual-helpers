@@ -79,8 +79,8 @@ export async function getLastTransaction(account: AccountEntity, cutoffDate?: Da
   const filters: Record<string, any> = {
     'account': account.id,
     'date': { $lt: cutoffDate },
-    'notes': notes,
   };
+  if (notes) filters.notes = notes;
   const data = await api.aqlQuery(
     api.q('transactions')
       .filter(filters)
@@ -185,6 +185,7 @@ interface UpdateBalanceArgs {
   account: AccountEntity
   newBalance: number
   payee: string
+  note?: string
   category?: {
     name: string
     group: string
@@ -206,7 +207,9 @@ export async function updateAccountBalance(args: UpdateBalanceArgs): Promise<voi
     const lastTx = await getLastTransaction(args.account, undefined, { $like: '%#helper-script%' })
     const shouldUpdateTx = lastTx && new RegExp(`^${lastTx.date}T`).test(new Date().toISOString())
 
-    const txNote = `Update balance to ${args.newBalance} #helper-script`
+    const txNote = `${args.note ?? `Update balance to ${args.newBalance}`} #helper-script`;
+
+    console.log(`Updating account balance for "${args.account.name}" from ${currentBalance} to ${args.newBalance}`);
 
     if (shouldUpdateTx) {
       await api.updateTransaction(lastTx.id, {

@@ -1,34 +1,58 @@
+import * as api from '@actual-app/api'
 import { AccountEntity } from '@actual-app/api/@types/loot-core/src/types/models'
 import schedule from 'node-schedule'
-import * as api from '@actual-app/api'
+import trackKBB from './kbb'
 
 import syncBalance from './sync-balance'
 import trackCrypto from './track-crypto'
 import { closeBudget, openBudget } from './utils'
 
-let running = false
+class MyJob extends schedule.Job {
+  private _concurrency = 0
 
-const run = async () => {
-  if (running) return
-  running = true
+  get concurrency(): number {
+    return this._concurrency
+  }
+  setConcurrency(value: number): MyJob {
+    this._concurrency = value
+    return this
+  }
 
-  const accounts: AccountEntity[] = await api.getAccounts();
-  await trackCrypto(accounts)
-  await syncBalance(accounts)
+  invoke() {
+    if (this._concurrency > 0 && this.triggeredJobs() >= this._concurrency) return
 
-  running = false
+    // @ts-ignore
+    return super.invoke(...arguments)
+  }
 }
 
 openBudget().then(async () => {
-  await run()
+  new MyJob('trackCrypto', async () => {
+    const accounts: AccountEntity[] = await api.getAccounts()
+    await trackCrypto(accounts)
+  })
+    .setConcurrency(1)
+    .schedule('*/30 * * * *')
 
-  // run every 15 minutes
-  schedule.scheduleJob('*/15 * * * *', () => {
-    run()
+  new MyJob('syncBalance', async () => {
+    const accounts: AccountEntity[] = await api.getAccounts()
+    await syncBalance(accounts)
+  })
+    .schedule('0 12 * * *')
+
+  new MyJob('trackKBB', async () => {
+    const accounts: AccountEntity[] = await api.getAccounts()
+    await trackKBB(accounts)
+  })
+    .schedule('0 12 * * *')
+
+  Object.values(schedule.scheduledJobs).forEach((job) => {
+    job.invoke()
   })
 })
 
 async function exitHandler(options: { cleanup?: boolean; exit?: boolean }, exitCode?: number) {
+  await schedule.gracefulShutdown()
   await closeBudget();
 
   if (options.cleanup) console.log('clean');
