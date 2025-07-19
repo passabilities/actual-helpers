@@ -11,40 +11,20 @@ import { closeBudget, openBudget } from './utils'
 
 dayjs.extend(utc)
 
-class MyJob extends schedule.Job {
-  private _concurrency = 0
-
-  get concurrency(): number {
-    return this._concurrency
-  }
-  setConcurrency(value: number): MyJob {
-    this._concurrency = value
-    return this
-  }
-
-  invoke() {
-    if (this._concurrency > 0 && this.triggeredJobs() >= this._concurrency) return
-
-    // @ts-ignore
-    return super.invoke(...arguments)
-  }
-}
-
 openBudget().then(async () => {
-  new MyJob('trackCrypto', async () => {
+  new schedule.Job('trackCrypto', async () => {
     const accounts: AccountEntity[] = await api.getAccounts()
     await trackCrypto(accounts)
   })
-    .setConcurrency(1)
     .schedule('*/30 * * * *')
 
-  new MyJob('syncBalance', async () => {
+  new schedule.Job('syncBalance', async () => {
     const accounts: AccountEntity[] = await api.getAccounts()
     await syncBalance(accounts)
   })
     .schedule('0 12 * * *')
 
-  new MyJob('trackKBB', async () => {
+  new schedule.Job('trackKBB', async () => {
     const accounts: AccountEntity[] = await api.getAccounts()
     await trackKBB(accounts)
   })
