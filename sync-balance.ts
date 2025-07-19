@@ -26,7 +26,7 @@ export default async function syncBalance(accounts: AccountEntity[]) {
     if (!simpleFinAccount) continue;
 
     const balanceDate = dayjs.utc(simpleFinAccount['balance-date'] * 1000);
-    if (balanceDate.isBefore(dayjs.utc())) {
+    if (!balanceDate.isSame(dayjs.utc(), 'day')) {
       continue;
     }
 
