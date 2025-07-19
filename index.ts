@@ -1,11 +1,15 @@
 import * as api from '@actual-app/api'
 import { AccountEntity } from '@actual-app/api/@types/loot-core/src/types/models'
+import dayjs from 'dayjs'
+import utc from 'dayjs/plugin/utc'
 import schedule from 'node-schedule'
 import trackKBB from './kbb'
 
 import syncBalance from './sync-balance'
 import trackCrypto from './track-crypto'
 import { closeBudget, openBudget } from './utils'
+
+dayjs.extend(utc)
 
 class MyJob extends schedule.Job {
   private _concurrency = 0

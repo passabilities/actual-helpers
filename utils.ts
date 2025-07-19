@@ -1,5 +1,6 @@
 import * as api from '@actual-app/api'
 import { AccountEntity, TransactionEntity } from '@actual-app/api/@types/loot-core/src/types/models'
+import dayjs from 'dayjs'
 import * as fs from 'fs'
 import * as readline from 'readline-sync'
 
@@ -71,14 +72,13 @@ export async function getTransactions(account: AccountEntity): Promise<Transacti
   return data.data;
 }
 
-export async function getLastTransaction(account: AccountEntity, cutoffDate?: Date, notes?: string | Record<string, any>): Promise<TransactionEntity | undefined> {
+export async function getLastTransaction(account: AccountEntity, cutoffDate?: dayjs.Dayjs, notes?: string | Record<string, any>): Promise<TransactionEntity | undefined> {
   if (!cutoffDate) {
-      cutoffDate = new Date();
-      cutoffDate.setDate(cutoffDate.getDate() + 1);
+      cutoffDate = dayjs.utc().add(1, 'day');
   }
   const filters: Record<string, any> = {
     'account': account.id,
-    'date': { $lt: cutoffDate },
+    'date': { $lt: cutoffDate.format('YYYY-MM-DD') },
   };
   if (notes) filters.notes = notes;
   const data = await api.aqlQuery(
@@ -204,8 +204,9 @@ export async function updateAccountBalance(args: UpdateBalanceArgs): Promise<voi
   const diff =  Math.round(args.newBalance * 100) - currentBalance;
 
   if (diff) {
+    const today = dayjs.utc().set('hour', 0).set('minute', 0).set('second', 0);
     const lastTx = await getLastTransaction(args.account, undefined, { $like: '%#helper-script%' })
-    const shouldUpdateTx = lastTx && new RegExp(`^${lastTx.date}T`).test(new Date().toISOString())
+    const shouldUpdateTx = lastTx && today.isSame(dayjs.utc(lastTx.date), 'day');
 
     const txNote = `${args.note ?? `Update balance to ${args.newBalance}`} #helper-script`;
 
@@ -218,12 +219,11 @@ export async function updateAccountBalance(args: UpdateBalanceArgs): Promise<voi
       })
     } else {
       await api.importTransactions(args.account.id, [{
-        // @ts-ignore
-        date: new Date(),
+        account: args.account.id,
+        date: today.format('YYYY-MM-DD'),
         payee: payeeId,
         amount: diff,
         cleared: true,
-        reconciled: true,
         category: categoryId,
         notes: txNote,
       }]);
@@ -332,11 +332,4 @@ export function showPercent(pct: string): string {
 
 export function escapeRegExp(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
-}
-
-export function dateToNumber(date: Date): number {
-  const yearStr = date.getFullYear();
-  const monthStr = (date.getMonth() + 1).toString().padStart(2, '0');
-  const dateStr = date.getDate().toString().padStart(2, '0');
-  return parseInt(`${yearStr}${monthStr}${dateStr}`)
 }

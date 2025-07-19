@@ -168,23 +168,25 @@ async function checkDebank(account: AccountEntity, note: string, newNote: string
       const updatingLocator = page.locator('.UpdateButton_refresh__vkj2W', { hasText: 'Updating data' })
       await updatingLocator.waitFor()
 
-      try {
-        await refreshLocator.waitFor({ timeout: 120000 })
-        const updatedMatch = await refreshLocator.innerText().then(t => t.match(/(\d+) (\w+)/));
-        if (updatedMatch) {
-          const [ _, duration, timeUnit ] = updatedMatch;
-          switch (timeUnit) {
-            case 'secs':
-              return
-            case 'mins':
-              if (parseInt(duration) < 5) return
-            default:
-              return await refreshBalance()
-          }
-        }
-      } catch (error) {
-        await refreshBalance();
-      }
+      await refreshLocator.waitFor({ timeout: 60000 * 5 })
+
+      // try {
+      //   await refreshLocator.waitFor({ timeout: 120000 })
+      //   const updatedMatch = await refreshLocator.innerText().then(t => t.match(/(\d+) (\w+)/));
+      //   if (updatedMatch) {
+      //     const [ _, duration, timeUnit ] = updatedMatch;
+      //     switch (timeUnit) {
+      //       case 'secs':
+      //         return
+      //       case 'mins':
+      //         if (parseInt(duration) <= 5) return
+      //       default:
+      //         return await refreshBalance()
+      //     }
+      //   }
+      // } catch (error) {
+      //   await refreshBalance();
+      // }
     }
     await refreshBalance();
 

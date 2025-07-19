@@ -1,7 +1,7 @@
 import { AccountEntity } from '@actual-app/api/@types/loot-core/src/types/models'
+import dayjs from 'dayjs'
 
 import {
-  dateToNumber,
   getAccountNote,
   getSimpleFinAccounts,
   getSimpleFinID,
@@ -25,8 +25,8 @@ export default async function syncBalance(accounts: AccountEntity[]) {
     const simpleFinAccount = await getSimpleFinAccounts({ account: simpleFinID }).then(accounts => accounts[0]);
     if (!simpleFinAccount) continue;
 
-    const balanceDate = new Date(simpleFinAccount['balance-date'] * 1000);
-    if (dateToNumber(balanceDate) < dateToNumber(new Date())) {
+    const balanceDate = dayjs.utc(simpleFinAccount['balance-date'] * 1000);
+    if (balanceDate.isBefore(dayjs.utc())) {
       continue;
     }
 

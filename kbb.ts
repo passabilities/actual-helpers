@@ -1,7 +1,6 @@
 import { AccountEntity } from '@actual-app/api/@types/loot-core/src/types/models'
 import jsdom from 'jsdom'
 import dayjs from 'dayjs'
-import customParseFormat from 'dayjs/plugin/customParseFormat'
 
 import {
   getAccountNote,
@@ -11,8 +10,6 @@ import {
   sleep,
   updateAccountBalance,
 } from './utils'
-
-dayjs.extend(customParseFormat)
 
 async function getKBB(url: URL) {
   url.searchParams.set('format', 'html');
@@ -74,7 +71,8 @@ export default async function trackKBB(accounts: AccountEntity[]) {
             const daily = parseInt(dailyMileage);
             const lastTx = await getLastTransaction(account, undefined)
             if (lastTx) {
-              const days = dayjs().diff(dayjs(lastTx.date), 'days');
+              const today = dayjs.utc().set('hour', 0).set('minute', 0).set('second', 0);
+              const days = today.diff(dayjs.utc(lastTx.date), 'days');
               if (days > 0) {
                 mileage = String(parseInt(mileage) + (days * daily));
 
