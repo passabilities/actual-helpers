@@ -38,16 +38,16 @@ async function wrapFunctions(accounts: AccountEntity[], fns: Fn[]) {
           newNote.push(endComment);
           newNote.push('');
 
-          const beforeNotes = note.match(new RegExp(`([\\s\\S]*)\\n\\n(?=${escapeRegExp(startComment)})`))?.[1];
-          const afterNotes = note.match(new RegExp(`(?<=${escapeRegExp(endComment)})\\n\\n?([\\s\\S]*)`))?.[1];
+          const beforeNotes = note.match(new RegExp(`([\\s\\S]*)[\\s\\S](?=${escapeRegExp(startComment)})`))?.[1];
+          const afterNotes = note.match(new RegExp(`(?<=${escapeRegExp(endComment)})\\n*([\\s\\S]*)`))?.[1];
           if (beforeNotes) {
-            newNote.splice(0, 0, beforeNotes);
+            newNote.splice(0, 0, beforeNotes.replace(/\n*$/, ''));
           }
           if (afterNotes) {
-            newNote.push(afterNotes);
+            newNote.push(afterNotes.replace(/\n*$/, ''));
           }
           if (!beforeNotes && !afterNotes) {
-            const negatedNote = note.replace(new RegExp(`\\n?\\n?${regex.source}\\n?\\n?`, regex.flags), '');
+            const negatedNote = note.replace(new RegExp(`(\\n*${escapeRegExp(startComment)}\\n*)?${regex.source}(\\n*${escapeRegExp(endComment)}\\n*)?`, regex.flags), '');
             newNote.splice(0, 0, negatedNote);
           }
 
