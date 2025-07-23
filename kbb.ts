@@ -40,7 +40,7 @@ async function getKBB(url: URL) {
 
 export default async function trackKBB(accounts: AccountEntity[]) {
   for (const account of accounts) {
-    const note = await getAccountNote(account);
+    let note = await getAccountNote(account);
     if (!note) continue;
 
     let url: URL
@@ -69,14 +69,24 @@ export default async function trackKBB(accounts: AccountEntity[]) {
         if (mileage) {
           if (dailyMileage) {
             const daily = parseInt(dailyMileage);
-            const lastTx = await getLastTransaction(account, undefined)
-            if (lastTx) {
+            let mileageUpdated = getTagValue(note, 'kbbMileageUpdated');
+            if (!mileageUpdated) {
+              const lastTx = await getLastTransaction(account, undefined)
+              if (lastTx) {
+                mileageUpdated = lastTx.date;
+                note += `\nkbbMileageUpdated:${mileageUpdated}`
+              }
+            }
+            // dayjs.utc().format('YYYY-MM-DD')
+            if (mileageUpdated) {
               const today = dayjs.utc().set('hour', 0).set('minute', 0).set('second', 0);
-              const days = today.diff(dayjs.utc(lastTx.date), 'days');
+              const days = today.diff(dayjs.utc(mileageUpdated), 'days');
               if (days > 0) {
                 mileage = String(parseInt(mileage) + (days * daily));
 
-                const newNote = note.replace(/kbbMileage:\d+/, `kbbMileage:${mileage}`);
+                const newNote = note
+                  .replace(/kbbMileage:\d+/, `kbbMileage:${mileage}`)
+                  .replace(/kbbMileageUpdated:\d\d\d\d-\d\d-\d\d/, `kbbMileageUpdated:${today.format('YYYY-MM-DD')}`);
                 await setAccountNote(account, newNote);
               }
             }
