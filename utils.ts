@@ -199,7 +199,7 @@ export async function updateAccountBalance(args: UpdateBalanceArgs): Promise<voi
     if (!args.date.isUTC()) {
       args.date = args.date.utc();
     }
-    if (args.date.isAfter(today)) {
+    if (args.date.isAfter(today, 'day')) {
       throw new Error(`Date cannot be in the future: ${args.date.format('YYYY-MM-DD')}`);
     }
   } else {
