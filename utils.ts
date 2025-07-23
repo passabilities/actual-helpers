@@ -191,8 +191,21 @@ interface UpdateBalanceArgs {
     group: string
     income: boolean
   }
+  date?: dayjs.Dayjs
 }
 export async function updateAccountBalance(args: UpdateBalanceArgs): Promise<void> {
+  const today = dayjs.utc().set('hour', 0).set('minute', 0).set('second', 0);
+  if (args.date) {
+    if (!args.date.isUTC()) {
+      args.date = args.date.utc();
+    }
+    if (args.date.isAfter(today)) {
+      throw new Error(`Date cannot be in the future: ${args.date.format('YYYY-MM-DD')}`);
+    }
+  } else {
+    args.date = today;
+  }
+
   const payeeId = await ensurePayee(args.payee);
   let categoryId: string | undefined;
   if (args.category) {
@@ -204,9 +217,8 @@ export async function updateAccountBalance(args: UpdateBalanceArgs): Promise<voi
   const diff =  Math.round(args.newBalance * 100) - currentBalance;
 
   if (diff) {
-    const today = dayjs.utc().set('hour', 0).set('minute', 0).set('second', 0);
     const lastTx = await getLastTransaction(args.account, undefined, { $like: '%#helper-script%' })
-    const shouldUpdateTx = lastTx && today.isSame(dayjs.utc(lastTx.date), 'day');
+    const shouldUpdateTx = lastTx && args.date.isSame(dayjs.utc(lastTx.date), 'day');
 
     const txNote = `${args.note ?? `Update balance to ${args.newBalance}`} #helper-script`;
 
@@ -220,7 +232,7 @@ export async function updateAccountBalance(args: UpdateBalanceArgs): Promise<voi
     } else {
       await api.importTransactions(args.account.id, [{
         account: args.account.id,
-        date: today.format('YYYY-MM-DD'),
+        date: args.date.format('YYYY-MM-DD'),
         payee: payeeId,
         amount: diff,
         cleared: true,

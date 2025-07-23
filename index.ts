@@ -19,6 +19,8 @@ openBudget().then(async () => {
     .schedule('*/30 * * * *')
 
   new schedule.Job('syncBalance', async () => {
+    await api.runBankSync()
+
     const accounts: AccountEntity[] = await api.getAccounts()
     await syncBalance(accounts)
   })

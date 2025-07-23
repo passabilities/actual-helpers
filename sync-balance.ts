@@ -26,9 +26,6 @@ export default async function syncBalance(accounts: AccountEntity[]) {
     if (!simpleFinAccount) continue;
 
     const balanceDate = dayjs.utc(simpleFinAccount['balance-date'] * 1000);
-    if (!balanceDate.isSame(dayjs.utc(), 'day')) {
-      continue;
-    }
 
     console.log(`Syncing balance for ${syncType} account:`, account.name);
 
@@ -36,6 +33,7 @@ export default async function syncBalance(accounts: AccountEntity[]) {
       account,
       newBalance: +simpleFinAccount.balance,
       payee: 'Balance Adjustment',
+      date: balanceDate,
     })
   }
 }
