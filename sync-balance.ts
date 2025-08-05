@@ -3,13 +3,15 @@ import dayjs from 'dayjs'
 
 import {
   getAccountNote,
-  getSimpleFinAccounts,
   getSimpleFinID,
   getTagValue,
   updateAccountBalance,
 } from './utils'
+import * as simplefin from './utils/simplefin'
 
 export default async function syncBalance(accounts: AccountEntity[]) {
+  const simplefinApi = await simplefin.create()
+
   for (const account of accounts) {
     if (account.closed) continue;
 
@@ -22,7 +24,7 @@ export default async function syncBalance(accounts: AccountEntity[]) {
     const simpleFinID = await getSimpleFinID(account);
     if (!simpleFinID) continue;
 
-    const simpleFinAccount = await getSimpleFinAccounts({ account: simpleFinID }).then(accounts => accounts[0]);
+    const [ simpleFinAccount ] = await simplefinApi.getAccounts({ account: simpleFinID });
     if (!simpleFinAccount) continue;
 
     const balanceDate = dayjs.utc(simpleFinAccount['balance-date'] * 1000);

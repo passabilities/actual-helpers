@@ -1,8 +1,6 @@
 import * as api from '@actual-app/api'
 import { AccountEntity, TransactionEntity } from '@actual-app/api/@types/loot-core/src/types/models'
 import dayjs from 'dayjs'
-import * as fs from 'fs'
-import * as readline from 'readline-sync'
 
 require("dotenv").config();
 
@@ -249,84 +247,6 @@ export async function getSimpleFinID(account: AccountEntity): Promise<string | u
       .select(['account_id'])
     ) as { data: { account_id: string }[] };
   return data.data[0]?.account_id;
-}
-
-export type SimpleFinAccount = {
-  id: string
-  name: string
-  currency: string
-  balance: string
-  "available-balance": string
-  "balance-date": number
-  "transactions": Array<{
-    id: string
-    posted: number
-    amount: string
-    description: string
-  }>,
-  extra: Record<string, any>
-}
-interface GetSimpleFinAccountsArgs {
-  account?: string
-  transactions?: boolean
-}
-export async function getSimpleFinAccounts(args?: GetSimpleFinAccountsArgs): Promise<SimpleFinAccount[]> {
-  const getCredentials = async () => {
-    if (process.env.SIMPLEFIN_CREDENTIALS) {
-      return process.env.SIMPLEFIN_CREDENTIALS;
-    }
-
-    const token = readline.question('Enter your SimpleFIN setup token: ');
-    const url = atob(token.trim());
-
-    const response = await fetch(url, { method: 'post' });
-    const api_url = await response.text();
-
-    const rest = api_url.split('//', 2)[1];
-    const auth = rest.split('@', 1)[0];
-    const username = auth.split(':')[0];
-    const pw = auth.split(':')[1];
-
-    const data = `${username}:${pw}`;
-    const cache = process.env.ACTUAL_CACHE_DIR || './cache';
-    fs.writeFileSync(cache + '/simplefin.credentials', data);
-    console.log('SimpleFIN credentials:', data);
-    return data;
-  };
-
-  const loadCredentials = () => {
-    try {
-      const cache = process.env.ACTUAL_CACHE_DIR || './cache';
-      return fs.readFileSync(cache + '/simplefin.credentials', 'utf8');
-    } catch (err) {
-      return undefined;
-    }
-  };
-
-  let credentials = loadCredentials();
-  if (!credentials) {
-    credentials = await getCredentials();
-  }
-  const username = credentials.split(':')[0];
-  const pw = credentials.split(':')[1];
-
-  const params = new URLSearchParams({
-    'start-date': new Date().getTime().toString(),
-    'end-date': new Date().getTime().toString(),
-  })
-  if (args?.account) {
-    params.set('account', args.account);
-  }
-  if (!args?.transactions) {
-    params.set('balances-only', '1');
-  }
-  const response = await fetch(`https://beta-bridge.simplefin.org/simplefin/accounts?${params}`, {
-    headers: {
-      'Authorization': `Basic ${btoa(`${username}:${pw}`)}`
-    }
-  });
-  const data = await response.json() as { accounts: SimpleFinAccount[] };
-  return data.accounts;
 }
 
 export function sleep(ms: number): Promise<never> {
