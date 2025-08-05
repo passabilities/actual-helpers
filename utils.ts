@@ -45,16 +45,14 @@ export async function closeBudget() {
   }
 }
 
-export async function getAccountBalance(account: AccountEntity, cutoffDate?: Date): Promise<number> {
-  const filter: Record<string, any> = {
+export async function getAccountBalance(account: AccountEntity, filter?: Record<string, any>): Promise<number> {
+  const filters: Record<string, any> = {
+    ...filter,
     'account': account.id,
-  }
-  if (cutoffDate) {
-    filter.date = { $lt: cutoffDate }
   }
   const data = await api.aqlQuery(
     api.q('transactions')
-    .filter(filter)
+    .filter(filters)
     .calculate({ $sum: '$amount' })
     .options({ splits: 'grouped' })
   ) as { data: number };
@@ -72,15 +70,15 @@ export async function getTransactions(account: AccountEntity): Promise<Transacti
   return data.data;
 }
 
-export async function getLastTransaction(account: AccountEntity, cutoffDate?: dayjs.Dayjs, notes?: string | Record<string, any>): Promise<TransactionEntity | undefined> {
+export async function getLastTransaction(account: AccountEntity, cutoffDate?: dayjs.Dayjs, filter?: Record<string, any>): Promise<TransactionEntity | undefined> {
   if (!cutoffDate) {
       cutoffDate = dayjs.utc().add(1, 'day');
   }
   const filters: Record<string, any> = {
+    ...filter,
     'account': account.id,
     'date': { $lt: cutoffDate.format('YYYY-MM-DD') },
   };
-  if (notes) filters.notes = notes;
   const data = await api.aqlQuery(
     api.q('transactions')
       .filter(filters)
@@ -217,7 +215,7 @@ export async function updateAccountBalance(args: UpdateBalanceArgs): Promise<voi
   const diff =  Math.round(args.newBalance * 100) - currentBalance;
 
   if (diff) {
-    const lastTx = await getLastTransaction(args.account, undefined, { $like: '%#helper-script%' })
+    const lastTx = await getLastTransaction(args.account, undefined, { notes: { $like: '%#helper-script%' } })
     const shouldUpdateTx = lastTx && args.date.isSame(dayjs.utc(lastTx.date), 'day');
 
     const txNote = `${args.note ?? `Update balance to ${args.newBalance}`} #helper-script`;

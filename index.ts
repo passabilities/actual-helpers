@@ -7,6 +7,7 @@ import trackKBB from './kbb'
 
 import syncBalance from './sync-balance'
 import trackCrypto from './track-crypto'
+import calcPayments from './calc-next-payment'
 import { closeBudget, openBudget } from './utils'
 
 dayjs.extend(utc)
@@ -23,8 +24,9 @@ openBudget().then(async () => {
 
     const accounts: AccountEntity[] = await api.getAccounts()
     await syncBalance(accounts)
+    await calcPayments(accounts)
   })
-    .schedule('0 12 * * *')
+    .schedule('0 */8 * * *')
 
   new schedule.Job('trackKBB', async () => {
     const accounts: AccountEntity[] = await api.getAccounts()
