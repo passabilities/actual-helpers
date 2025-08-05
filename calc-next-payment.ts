@@ -1,5 +1,5 @@
 import * as api from '@actual-app/api'
-import { AccountEntity, TransactionEntity } from '@actual-app/api/@types/loot-core/src/types/models'
+import { AccountEntity, RuleEntity, TransactionEntity } from '@actual-app/api/@types/loot-core/src/types/models'
 import dayjs from 'dayjs'
 import { ensureCategory, ensureCategoryGroup, ensurePayee, getAccountBalance, getLastTransaction } from './utils'
 
@@ -92,7 +92,30 @@ async function calcNextPayment(account: AccountEntity) {
           .select(['id'])
       ) as { data: { id: string }[] };
 
-      await api.internal.send(
+      const joinCheckingAccountCondition = {
+        op: 'is',
+        field: 'account',
+        value: '65336329-0877-4395-be4b-dc9ca7faa8a7', // Joint Checking
+      }
+      const dueDateCondition = {
+        op: 'is',
+        field: 'date',
+        value: {
+          frequency: 'monthly',
+          start: nextDueDate.format('YYYY-MM-DD'),
+          endMode: 'never',
+          // patterns: [],
+          // skipWeekend: false,
+          // weekendSolveMode: 'after',
+        },
+      }
+      const amountDueCondition = {
+        op: 'isapprox',
+        field: 'amount',
+        value: dueBalance
+      }
+
+      const scheduleId: string = await api.internal.send(
         existingSchedules.length > 0 ? 'schedule/update' : 'schedule/create',
         {
           schedule: {
@@ -100,37 +123,35 @@ async function calcNextPayment(account: AccountEntity) {
             name: scheduleName,
           },
           conditions: [
-            {
-              op: 'is',
-              field: 'account',
-              value: '65336329-0877-4395-be4b-dc9ca7faa8a7', // Joint Checking
-            },
-            {
-              op: 'is',
-              field: 'payee',
-              value: await ensurePayee(account.name),
-            },
-            {
-              op: 'is',
-              field: 'category',
-              value: ccPaymentCategoryId,
-            },
-            {
-              op: 'is',
-              field: 'date',
-              value: {
-                frequency: 'monthly',
-                start: nextDueDate.format('YYYY-MM-DD'),
-                endMode: 'never',
-                // patterns: [],
-                // skipWeekend: false,
-                // weekendSolveMode: 'after',
-              },
-            },
-            { op: 'isapprox', field: 'amount', value: dueBalance }
-          ]
+            joinCheckingAccountCondition,
+            dueDateCondition,
+            amountDueCondition,
+          ],
         }
       )
+
+      const rule: RuleEntity = await api.getRules().then(async (rules: RuleEntity[]) => {
+        const { data: [ schedule ] } = await api.aqlQuery(
+          api.q('schedules')
+            .filter({ id: scheduleId })
+            .select(['rule'])
+        ) as { data: { rule: string }[] };
+        return rules.find((rule) => rule.id === schedule.rule)!
+      })
+      const linkAction = rule.actions.find((action) => action.op === 'link-schedule')
+      rule.actions = []
+      if (linkAction) rule.actions.push(linkAction)
+      rule.actions.push({
+        op: 'set',
+        field: 'category',
+        value: ccPaymentCategoryId,
+      })
+      rule.actions.push({
+        op: 'set',
+        field: 'payee',
+        value: await ensurePayee(`CC Payment for ${account.name}`),
+      })
+      await api.updateRule(rule)
     } else {
       // console.log('No exact combination of transactions found that matches the payment amount.');
       //
