@@ -11,6 +11,7 @@ import * as simplefin from './utils/simplefin'
 
 export default async function syncBalance(accounts: AccountEntity[]) {
   const simplefinApi = await simplefin.create()
+  const simpleFinAccounts = await simplefinApi.getAccounts();
 
   for (const account of accounts) {
     if (account.closed) continue;
@@ -24,7 +25,7 @@ export default async function syncBalance(accounts: AccountEntity[]) {
     const simpleFinID = await getSimpleFinID(account);
     if (!simpleFinID) continue;
 
-    const [ simpleFinAccount ] = await simplefinApi.getAccounts({ account: simpleFinID });
+    const simpleFinAccount = simpleFinAccounts.find((acc) => acc.id === simpleFinID)
     if (!simpleFinAccount) continue;
 
     const balanceDate = dayjs.utc(simpleFinAccount['balance-date'] * 1000);
