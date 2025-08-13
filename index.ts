@@ -20,13 +20,11 @@ openBudget().then(async () => {
     .schedule('*/30 * * * *')
 
   new schedule.Job('syncBalance', async () => {
-    await api.runBankSync().catch(() => {})
-
     const accounts: AccountEntity[] = await api.getAccounts()
     await syncBalance(accounts)
     await calcPayments(accounts)
   })
-    .schedule('0 */8 * * *')
+    .schedule('0 16 * * *')
 
   new schedule.Job('trackKBB', async () => {
     const accounts: AccountEntity[] = await api.getAccounts()
