@@ -73,16 +73,12 @@ export const create = async () => {
 }
 
 const getCredentials = async () => {
-  if (process.env.SIMPLEFIN_CREDENTIALS) {
-    return process.env.SIMPLEFIN_CREDENTIALS
-  }
-
   const cached = loadCredentials()
   if (cached) {
     return cached
   }
 
-  const token = readline.question('Enter your SimpleFIN setup token: ')
+  const token = process.env.SIMPLEFIN_TOKEN ?? readline.question('Enter your SimpleFIN setup token: ')
   const url = atob(token.trim())
 
   const response = await fetch(url, { method: 'post' })
