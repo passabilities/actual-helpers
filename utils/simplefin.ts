@@ -1,9 +1,12 @@
 import axios from 'axios'
 import fs from 'fs'
+import path from 'path'
+import dayjs from 'dayjs'
 import * as readline from 'readline-sync'
 
 const cache = process.env.ACTUAL_CACHE_DIR || './cache'
 const credentialFile = `${cache}/simplefin.credentials`
+const accountsCacheFile = path.join(cache, 'simplefin-accounts.json')
 
 export interface SimpleFinOrganization {
   domain: string
@@ -35,6 +38,52 @@ export interface SimpleFinTransaction {
   description: string
 }
 
+interface CachedAccountsData {
+  timestamp: string
+  accounts: SimpleFinAccount[]
+}
+
+const CACHE_DURATION_HOURS = 12
+
+function getCachedAccounts(): SimpleFinAccount[] | null {
+  try {
+    if (!fs.existsSync(accountsCacheFile)) {
+      return null
+    }
+
+    const data = fs.readFileSync(accountsCacheFile, 'utf8')
+    const cached: CachedAccountsData = JSON.parse(data)
+
+    const cacheTime = dayjs(cached.timestamp)
+    const now = dayjs()
+    
+    if (now.diff(cacheTime, 'hours') > CACHE_DURATION_HOURS) {
+      console.log('SimpleFin cache expired')
+      return null
+    }
+
+    console.log('Using cached SimpleFin accounts data')
+    return cached.accounts
+  } catch (error) {
+    console.error('Error reading SimpleFin cache:', error)
+    return null
+  }
+}
+
+function setCachedAccounts(accounts: SimpleFinAccount[]): void {
+  try {
+    const data: CachedAccountsData = {
+      timestamp: dayjs().toISOString(),
+      accounts
+    }
+    
+    fs.writeFileSync(accountsCacheFile, JSON.stringify(data, null, 2))
+    console.log(`Cached ${accounts.length} SimpleFin accounts`)
+  } catch (error) {
+    console.error('Error writing SimpleFin cache:', error)
+  }
+}
+
 export const create = async () => {
   const credentials = await getCredentials()
   const [username, pw] = credentials.split(':')
@@ -50,7 +99,21 @@ export const create = async () => {
     getAccounts: async (args?: {
       account?: string
       transactions?: boolean
+      useCache?: boolean
     }): Promise<SimpleFinAccount[]> => {
+      // Default to using cache for balance-only requests
+      const shouldUseCache = args?.useCache !== false && !args?.transactions
+      
+      // Try to get cached data if appropriate
+      if (shouldUseCache && !args?.account) {
+        const cached = getCachedAccounts()
+        if (cached) {
+          return cached
+        }
+      }
+
+      // Fetch fresh data from API
+      console.log('Fetching fresh SimpleFin accounts data')
       const params = new URLSearchParams({
         'start-date': new Date().getTime().toString(),
         'end-date': new Date().getTime().toString(),
@@ -65,9 +128,16 @@ export const create = async () => {
       const response = await api.get<AccountSet>('/accounts', { params })
       if (response.data.errors.length) {
         throw new Error(response.data.errors.join('\n'))
-      } else {
-        return response.data.accounts
       }
+      
+      const accounts = response.data.accounts
+      
+      // Cache the results if it was a full account fetch without transactions
+      if (shouldUseCache && !args?.account) {
+        setCachedAccounts(accounts)
+      }
+      
+      return accounts
     },
   }
 }
