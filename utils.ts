@@ -57,14 +57,29 @@ export async function getAccountBalance(account: AccountEntity, filter?: Record<
   return data.data;
 }
 
-export async function getTransactions(account: AccountEntity): Promise<TransactionEntity[]> {
-  const data = await api.aqlQuery(
-    api.q('transactions')
-      .select(['*'])
-      .filter({
-        'account': account.id,
-      })
-  ) as { data: TransactionEntity[] };
+interface GetTransactionsOptions {
+  filter?: Record<string, any>
+  limit?: number
+  offset?: number
+}
+
+export async function getTransactions(account: AccountEntity, options?: GetTransactionsOptions): Promise<TransactionEntity[]> {
+  let query = api.q('transactions')
+    .filter({
+      ...(options?.filter || {}),
+      'account': account.id,
+    })
+    .select(['*'])
+    .orderBy({ 'date': 'desc' })
+
+  if (options?.limit) {
+    query = query.limit(options.limit)
+  }
+  if (options?.offset) {
+    query = query.offset(options.offset)
+  }
+
+  const data = await api.aqlQuery(query) as { data: TransactionEntity[] };
   return data.data;
 }
 

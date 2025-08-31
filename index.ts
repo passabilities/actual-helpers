@@ -22,7 +22,7 @@ openBudget().then(async () => {
   new schedule.Job('syncBalance', async () => {
     const accounts: AccountEntity[] = await api.getAccounts()
     await syncBalance(accounts)
-    await calcPayments(accounts)
+    // await calcPayments(accounts)
   })
     .schedule('0 16 * * *')
 
