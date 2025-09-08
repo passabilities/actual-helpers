@@ -1,7 +1,7 @@
 import axios from 'axios'
+import dayjs from 'dayjs'
 import fs from 'fs'
 import path from 'path'
-import dayjs from 'dayjs'
 import * as readline from 'readline-sync'
 
 const cache = process.env.ACTUAL_CACHE_DIR || './cache'
@@ -127,7 +127,7 @@ export const create = async () => {
 
       const response = await api.get<AccountSet>('/accounts', { params })
       if (response.data.errors.length) {
-        throw new Error(response.data.errors.join('\n'))
+        console.error(response.data.errors)
       }
       
       const accounts = response.data.accounts
