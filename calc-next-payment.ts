@@ -1,6 +1,6 @@
 import * as api from '@actual-app/api'
 import type { APIAccountEntity as AccountEntity } from '@actual-app/api/models'
-import type { RuleEntity, TransactionEntity } from '@actual-app/core/types/models'
+import type { RuleConditionEntity, RuleEntity, TransactionEntity } from '@actual-app/core/types/models'
 import dayjs from 'dayjs'
 import { Duration } from 'dayjs/plugin/duration'
 import {
@@ -397,12 +397,12 @@ const ensureSchedule = async (args: EnsureScheduleArgs): Promise<string> => {
       .select([ 'id' ]),
   ) as { data: { id: string }[] }
 
-  const joinCheckingAccountCondition = {
+  const joinCheckingAccountCondition: RuleConditionEntity = {
     op: 'is',
     field: 'account',
     value: '65336329-0877-4395-be4b-dc9ca7faa8a7', // Joint Checking
   }
-  const dueDateCondition = {
+  const dueDateCondition: RuleConditionEntity = {
     op: 'is',
     field: 'date',
     value: {
@@ -414,26 +414,30 @@ const ensureSchedule = async (args: EnsureScheduleArgs): Promise<string> => {
       // weekendSolveMode: 'after',
     },
   }
-  const amountDueCondition = {
+  const amountDueCondition: RuleConditionEntity = {
     op: 'isapprox',
     field: 'amount',
     value: args.dueBalance,
   }
 
-  const scheduleId: string = await api.internal!.send(
-    existingSchedules.length > 0 ? 'schedule/update' : 'schedule/create',
-    {
-      schedule: {
-        id: existingSchedules.length > 0 ? existingSchedules[0].id : undefined,
-        name: scheduleName,
-      },
-      conditions: [
-        joinCheckingAccountCondition,
-        dueDateCondition,
-        amountDueCondition,
-      ],
-    },
-  )
+  const conditions = [
+    joinCheckingAccountCondition,
+    dueDateCondition,
+    amountDueCondition,
+  ]
+
+  // update and create take different argument shapes -- update requires the
+  // id -- so they cannot share a single call behind a ternary method name.
+  const existingId = existingSchedules[0]?.id
+  const scheduleId: string = existingId
+    ? await api.internal!.send('schedule/update', {
+        schedule: { id: existingId, name: scheduleName },
+        conditions,
+      })
+    : await api.internal!.send('schedule/create', {
+        schedule: { name: scheduleName },
+        conditions,
+      })
 
   return scheduleId
 }

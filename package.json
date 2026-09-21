@@ -4,8 +4,8 @@
     "build:prod": "tsc -p tsconfig.prod.json"
   },
   "dependencies": {
-    "@actual-app/api": "26.5.2",
-    "@actual-app/core": "26.5.2",
+    "@actual-app/api": "26.9.0",
+    "@actual-app/core": "26.9.0",
     "axios": "^1.20.0",
     "dayjs": "^1.11.23",
     "dotenv": "^16.4.5",
