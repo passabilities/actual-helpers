@@ -1,6 +1,7 @@
 # Actual Budget cache
 simplefin.credentials
-/cache/*/
+/cache/*
+!/cache/.gitkeep
 
 # temp files
 .*.swp

@@ -26,7 +26,20 @@ async function getKBB(url: URL) {
   })
 
   const html = await response.text()
-  const dom = new jsdom.JSDOM(html)
+
+  // The KBB page ships Tailwind v4, whose @layer syntax jsdom cannot parse. The
+  // resulting jsdomError carries the entire stylesheet with it, dumping ~45KB of
+  // CSS into the logs on every run. Nothing here reads styles -- we only want
+  // #PriceAdvisor and a regex over the raw HTML -- so drop that one error and
+  // forward everything else.
+  const virtualConsole = new jsdom.VirtualConsole()
+  virtualConsole.sendTo(console, { omitJSDOMErrors: true })
+  virtualConsole.on('jsdomError', (error: Error) => {
+    if (error.message === 'Could not parse CSS stylesheet') return
+    console.error(error)
+  })
+
+  const dom = new jsdom.JSDOM(html, { virtualConsole })
 
   const advisor = dom.window.document.getElementById('PriceAdvisor')
   const kbbText = advisor?.getElementsByTagName('text')[3].textContent
