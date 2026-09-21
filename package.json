@@ -6,15 +6,15 @@
   "dependencies": {
     "@actual-app/api": "26.5.2",
     "@actual-app/core": "26.5.2",
-    "axios": "^1.11.0",
-    "dayjs": "^1.11.13",
+    "axios": "^1.20.0",
+    "dayjs": "^1.11.23",
     "dotenv": "^16.4.5",
     "jsdom": "^24.1.0",
     "node-schedule": "^2.1.1",
     "playwright": "1.60.0",
     "readline-sync": "^1.4.10",
-    "selenium-webdriver": "^4.27.0",
-    "viem": "^2.31.7"
+    "selenium-webdriver": "^4.49.0",
+    "viem": "2.51.0"
   },
   "devDependencies": {
     "@types/jsdom": "^21.1.7",
