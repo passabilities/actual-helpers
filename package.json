@@ -4,11 +4,9 @@
     "build:prod": "tsc -p tsconfig.prod.json"
   },
   "dependencies": {
-    "@actual-app/api": "latest",
-    "@actual-app/core": "latest",
+    "@actual-app/api": "26.5.2",
+    "@actual-app/core": "26.5.2",
     "axios": "^1.11.0",
-    "better-sqlite3": "^11.7.2",
-    "chromedriver": "^131.0.4",
     "dayjs": "^1.11.13",
     "dotenv": "^16.4.5",
     "jsdom": "^24.1.0",
