@@ -1,5 +1,6 @@
 import * as api from '@actual-app/api'
-import { AccountEntity, TransactionEntity } from '@actual-app/api/@types/loot-core/src/types/models'
+import type { APIAccountEntity as AccountEntity } from '@actual-app/api/models'
+import type { TransactionEntity } from '@actual-app/core/types/models'
 import dayjs from 'dayjs'
 
 require("dotenv").config();

@@ -1,4 +1,4 @@
-import { AccountEntity } from '@actual-app/api/@types/loot-core/src/types/models'
+import type { APIAccountEntity as AccountEntity } from '@actual-app/api/models'
 import { chromium, Page } from 'playwright'  // Or 'firefox' or 'webkit'.
 import { formatEther, formatGwei, fromHex } from 'viem'
 

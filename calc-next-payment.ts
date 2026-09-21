@@ -1,5 +1,6 @@
 import * as api from '@actual-app/api'
-import { AccountEntity, RuleEntity, TransactionEntity } from '@actual-app/api/@types/loot-core/src/types/models'
+import type { APIAccountEntity as AccountEntity } from '@actual-app/api/models'
+import type { RuleEntity, TransactionEntity } from '@actual-app/core/types/models'
 import dayjs from 'dayjs'
 import { Duration } from 'dayjs/plugin/duration'
 import {
@@ -419,7 +420,7 @@ const ensureSchedule = async (args: EnsureScheduleArgs): Promise<string> => {
     value: args.dueBalance,
   }
 
-  const scheduleId: string = await api.internal.send(
+  const scheduleId: string = await api.internal!.send(
     existingSchedules.length > 0 ? 'schedule/update' : 'schedule/create',
     {
       schedule: {

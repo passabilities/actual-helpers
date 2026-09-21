@@ -5,6 +5,7 @@
   },
   "dependencies": {
     "@actual-app/api": "latest",
+    "@actual-app/core": "latest",
     "axios": "^1.11.0",
     "better-sqlite3": "^11.7.2",
     "chromedriver": "^131.0.4",
@@ -12,7 +13,7 @@
     "dotenv": "^16.4.5",
     "jsdom": "^24.1.0",
     "node-schedule": "^2.1.1",
-    "playwright": "^1.54.0",
+    "playwright": "1.60.0",
     "readline-sync": "^1.4.10",
     "selenium-webdriver": "^4.27.0",
     "viem": "^2.31.7"

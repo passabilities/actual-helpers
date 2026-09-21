@@ -1,4 +1,9 @@
-FROM mcr.microsoft.com/playwright:v1.55.0-jammy
+FROM mcr.microsoft.com/playwright:v1.60.0-jammy
+
+# Install build tools for native node modules (better-sqlite3)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential python3 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set the working directory in the container
 WORKDIR /usr/src/app
@@ -11,7 +16,7 @@ VOLUME ./cache
 COPY . .
 
 # Install any needed packages specified in package.json
-RUN npm install && npm update && npm run build:prod
+RUN npm ci && npm run build:prod
 
 # Define environment variables
 ENV NODE_ENV=production
