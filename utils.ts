@@ -185,11 +185,21 @@ export async function getAccountNote(account: AccountEntity): Promise<string | u
   return getNote(`account-${account.id}`);
 }
 
-export async function setAccountNote(account: AccountEntity, note: string): Promise<void> {
-  api.internal.send('notes-save', {
-      id: `account-${account.id}`,
+export async function setNote(id: string, note: string): Promise<boolean> {
+  // Every note write is a permanent CRDT message that all devices replay on
+  // every sync, so writing an unchanged note is not free -- it is pure sync
+  // weight. Skip it.
+  if (await getNote(id) === note) return false;
+
+  await api.internal!.send('notes-save', {
+      id: id,
       note: note,
   });
+  return true;
+}
+
+export async function setAccountNote(account: AccountEntity, note: string): Promise<boolean> {
+  return setNote(`account-${account.id}`, note);
 }
 
 interface UpdateBalanceArgs {
@@ -217,6 +227,25 @@ export async function updateAccountBalance(args: UpdateBalanceArgs): Promise<voi
     args.date = today;
   }
 
+  const currentBalance = await getAccountBalance(args.account);
+  const targetBalance = Math.round(args.newBalance * 100);
+  const diff = targetBalance - currentBalance;
+
+  if (!diff) return;
+
+  const lastTx = await getLastTransaction(args.account, undefined, { notes: { $like: '%#helper-script%' } })
+  const shouldUpdateTx = !!lastTx && args.date.isSame(dayjs.utc(lastTx.date), 'day');
+
+  // Rewriting today's adjustment is intraday churn: only the final value of the
+  // day is ever visible in the ledger, but each rewrite costs two permanent CRDT
+  // messages that every device replays forever. Skip the insignificant ones.
+  // Creating the day's first adjustment is never skipped, so each day still
+  // closes on an exact balance, and because the write is absolute a skipped
+  // update is corrected in full by the next one that clears the threshold.
+  if (shouldUpdateTx && !isSignificantBalanceChange(diff, targetBalance)) {
+    return;
+  }
+
   const payeeId = await ensurePayee(args.payee);
   let categoryId: string | undefined;
   if (args.category) {
@@ -224,34 +253,39 @@ export async function updateAccountBalance(args: UpdateBalanceArgs): Promise<voi
     categoryId = await ensureCategory(args.category.name, categoryGroupId, args.category.income);
   }
 
-  const currentBalance = await getAccountBalance(args.account);
-  const diff =  Math.round(args.newBalance * 100) - currentBalance;
+  const txNote = `${args.note ?? `Update balance to ${args.newBalance}`} #helper-script`;
 
-  if (diff) {
-    const lastTx = await getLastTransaction(args.account, undefined, { notes: { $like: '%#helper-script%' } })
-    const shouldUpdateTx = lastTx && args.date.isSame(dayjs.utc(lastTx.date), 'day');
+  console.log(`Updating account balance for "${args.account.name}" from ${currentBalance / 100} to ${args.newBalance}`);
 
-    const txNote = `${args.note ?? `Update balance to ${args.newBalance}`} #helper-script`;
-
-    console.log(`Updating account balance for "${args.account.name}" from ${currentBalance / 100} to ${args.newBalance}`);
-
-    if (shouldUpdateTx) {
-      await api.updateTransaction(lastTx.id, {
-        amount: +lastTx.amount + diff,
-        notes: txNote,
-      })
-    } else {
-      await api.importTransactions(args.account.id, [{
-        account: args.account.id,
-        date: args.date.format('YYYY-MM-DD'),
-        payee: payeeId,
-        amount: diff,
-        cleared: true,
-        category: categoryId,
-        notes: txNote,
-      }]);
-    }
+  if (shouldUpdateTx) {
+    await api.updateTransaction(lastTx!.id, {
+      amount: +lastTx!.amount + diff,
+      notes: txNote,
+    })
+  } else {
+    await api.importTransactions(args.account.id, [{
+      account: args.account.id,
+      date: args.date.format('YYYY-MM-DD'),
+      payee: payeeId,
+      amount: diff,
+      cleared: true,
+      category: categoryId,
+      notes: txNote,
+    }]);
   }
+}
+
+// Smallest intraday move worth a sync message, as a percent of the account
+// balance and as an absolute floor in cents.
+const BALANCE_MIN_CHANGE_PCT = Number(process.env.BALANCE_MIN_CHANGE_PCT ?? '0.5');
+const BALANCE_MIN_CHANGE_CENTS = Number(process.env.BALANCE_MIN_CHANGE_CENTS ?? '500');
+
+function isSignificantBalanceChange(diff: number, targetBalance: number): boolean {
+  const threshold = Math.max(
+    BALANCE_MIN_CHANGE_CENTS,
+    Math.abs(targetBalance) * (BALANCE_MIN_CHANGE_PCT / 100),
+  );
+  return Math.abs(diff) >= threshold;
 }
 
 export async function getSimpleFinID(account: AccountEntity): Promise<string | undefined> {
